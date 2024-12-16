@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文件预览</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .preview-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .preview-image {
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .download-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .download-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>文件预览</h1>
+    <div class="preview-container">
+        <% if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) { %>
+            <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image">
+        <% } else { %>
+            <p>此文件类型无法预览</p>
+        <% } %>
+        <div>
+            <p>文件名: <%= filename %></p>
+            <a href="/file/<%= qrId %>" class="download-button" download>下载文件</a>
+        </div>
+    </div>
+</body>
+</html> 

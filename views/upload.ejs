@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>上传文件</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .upload-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+        .file-input {
+            margin: 20px 0;
+        }
+        .submit-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>上传文件</h1>
+    <div class="upload-form">
+        <form action="/upload/<%= qrId %>" method="post" enctype="multipart/form-data">
+            <div class="file-input">
+                <input type="file" name="file" required>
+            </div>
+            <button type="submit" class="submit-button">上传文件</button>
+        </form>
+    </div>
+</body>
+</html> 
