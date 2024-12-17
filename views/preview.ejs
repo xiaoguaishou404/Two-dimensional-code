@@ -37,6 +37,10 @@
         .download-button:hover {
             background-color: #45a049;
         }
+        .file-info {
+            margin: 10px 0;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -47,10 +51,10 @@
         <% } else { %>
             <p>此文件类型无法预览</p>
         <% } %>
-        <div>
-            <p>文件名: <%= filename %></p>
-            <a href="/file/<%= qrId %>" class="download-button" download>下载文件</a>
+        <div class="file-info">
+            <p>文件名: <%= originalFilename %></p>
         </div>
+        <a href="/file/<%= qrId %>" class="download-button" download="<%= originalFilename %>">下载文件</a>
     </div>
 </body>
 </html> 
