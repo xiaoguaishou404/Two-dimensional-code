@@ -31,7 +31,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /path/to/app
+            cd  /home/ubuntu/Two-dimensional-code/index.js
             git pull origin main
             npm install
             pm2 restart qrcode-app || pm2 start index.js --name qrcode-app 
