@@ -4,6 +4,7 @@ const path = require('path');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
+const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./config/db');
 const QRCodeModel = require('./models/QRCode');
@@ -13,6 +14,13 @@ connectDB();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// 允许所有跨域请求
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // 添加 JSON 解析中间件
 app.use(express.json());
