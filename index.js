@@ -14,6 +14,9 @@ connectDB();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// 添加 JSON 解析中间件
+app.use(express.json());
+
 // 设置模板引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -43,50 +46,78 @@ const upload = multer({
     }
 });
 
-// 生成新的二维码
-app.get('/generate', async (req, res) => {
+// 生成新的二维码 API
+app.get('/api/qrcode/generate', async (req, res) => {
     try {
-        const qrId = uuidv4();
-        const qrUrl = `${req.protocol}://${req.get('host')}/qr/${qrId}`;
-        const qrImage = await QRCode.toDataURL(qrUrl);
+        const count = parseInt(req.query.count) || 1; // 从查询参数获取数量
         
-        // 在数据库中创建新记录
-        await QRCodeModel.create({
-            qrId: qrId,
-            hasFile: false
+        // 限制最大生成数量
+        if (count > 100) {
+            return res.status(400).json({
+                success: false,
+                error: '单次最多生成 100 个二维码'
+            });
+        }
+        
+        const qrCodes = [];
+
+        for (let i = 0; i < count; i++) {
+            const qrId = uuidv4();
+            const qrUrl = `${req.protocol}://${req.get('host')}/qr/${qrId}`;
+            
+            // 在数据库中创建新记录
+            await QRCodeModel.create({
+                qrId: qrId,
+                hasFile: false
+            });
+            
+            qrCodes.push({
+                qrId: qrId,
+                qrUrl: qrUrl
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: qrCodes
         });
-        
-        res.render('generate', { qrImage, qrUrl });
     } catch (error) {
         console.error(error);
-        res.status(500).send('服务器错误');
+        res.status(500).json({
+            success: false,
+            error: '服务器错误'
+        });
     }
 });
 
-// 处理二维码扫描
-app.get('/qr/:qrId', async (req, res) => {
+// 获取二维码状态 API
+app.get('/api/qrcode/:qrId/status', async (req, res) => {
     try {
         const qrId = req.params.qrId;
         const qrInfo = await QRCodeModel.findOne({ qrId });
         
         if (!qrInfo) {
-            return res.status(404).send('二维码不存在');
+            return res.status(404).json({
+                success: false,
+                error: '二维码不存在'
+            });
         }
         
-        if (qrInfo.hasFile) {
-            // 如果已经上传了文件，显示预览页面
-            res.render('preview', { 
-                filename: qrInfo.filename,
-                qrId: qrId,
-                originalFilename: qrInfo.originalFilename
-            });
-        } else {
-            // 如果还没有上传文件，显示上传页面
-            res.render('upload', { qrId });
-        }
+        res.json({
+            success: true,
+            data: {
+                qrId: qrInfo.qrId,
+                hasFile: qrInfo.hasFile,
+                filename: qrInfo.originalFilename,
+                createdAt: qrInfo.createdAt
+            }
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).send('服务器错误');
+        res.status(500).json({
+            success: false,
+            error: '服务器错误'
+        });
     }
 });
 
@@ -132,6 +163,33 @@ app.get('/file/:qrId', async (req, res) => {
         }
         
         res.sendFile(path.join(uploadDir, qrInfo.filename));
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('服务器错误');
+    }
+});
+
+// 处理二维码扫描
+app.get('/qr/:qrId', async (req, res) => {
+    try {
+        const qrId = req.params.qrId;
+        const qrInfo = await QRCodeModel.findOne({ qrId });
+        
+        if (!qrInfo) {
+            return res.status(404).send('二维码不存在');
+        }
+        
+        if (qrInfo.hasFile) {
+            // 如果已经上传了文件，显示预览页面
+            res.render('preview', { 
+                filename: qrInfo.filename,
+                qrId: qrId,
+                originalFilename: qrInfo.originalFilename
+            });
+        } else {
+            // 如果还没有上传文件，显示上传页面
+            res.render('upload', { qrId });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).send('服务器错误');
