@@ -204,6 +204,37 @@ app.get('/qr/:qrId', async (req, res) => {
     }
 });
 
+// 主页路由
+app.get('/', async (req, res) => {
+    try {
+        // 获取统计数据
+        const totalQRCodes = await QRCodeModel.countDocuments();
+        const usedQRCodes = await QRCodeModel.countDocuments({ hasFile: true });
+        const unusedQRCodes = totalQRCodes - usedQRCodes;
+
+        // 获取最近上传的文件
+        const recentUploads = await QRCodeModel.find({ hasFile: true })
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        // 获取最近创建的二维码
+        const qrCodes = await QRCodeModel.find()
+            .sort({ createdAt: -1 })
+            .limit(20);
+
+        res.render('index', {
+            totalQRCodes,
+            usedQRCodes,
+            unusedQRCodes,
+            recentUploads,
+            qrCodes
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('服务器错误');
+    }
+});
+
 app.listen(port, () => {
     console.log(`服务器运行在 http://localhost:${port}`);
     console.log(`环境: ${process.env.NODE_ENV || 'development'}`);

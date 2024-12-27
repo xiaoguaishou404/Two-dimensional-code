@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>二维码文件管理系统</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .recent-uploads {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .upload-list {
+            list-style: none;
+            padding: 0;
+        }
+        .upload-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .upload-item:last-child {
+            border-bottom: none;
+        }
+        .generate-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .generate-button:hover {
+            background-color: #45a049;
+        }
+        .qr-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .qr-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .qr-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .status-unused {
+            background-color: #ffeb3b;
+            color: #000;
+        }
+        .status-used {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .date {
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>二维码文件管理系统</h1>
+            <button class="generate-button" onclick="generateQRCodes()">生成新二维码</button>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>总二维码数</h3>
+                <div class="stat-number"><%= totalQRCodes %></div>
+            </div>
+            <div class="stat-card">
+                <h3>已使用</h3>
+                <div class="stat-number"><%= usedQRCodes %></div>
+            </div>
+            <div class="stat-card">
+                <h3>未使用</h3>
+                <div class="stat-number"><%= unusedQRCodes %></div>
+            </div>
+        </div>
+
+        <div class="recent-uploads">
+            <h2>最近上传</h2>
+            <ul class="upload-list">
+                <% recentUploads.forEach(function(upload) { %>
+                    <li class="upload-item">
+                        <div>
+                            <strong><%= upload.originalFilename %></strong>
+                            <span class="date"><%= new Date(upload.createdAt).toLocaleString() %></span>
+                        </div>
+                        <a href="/file/<%= upload.qrId %>" class="download-button" download>下载</a>
+                    </li>
+                <% }); %>
+            </ul>
+        </div>
+
+        <div class="qr-list">
+            <% qrCodes.forEach(function(qr) { %>
+                <div class="qr-card">
+                    <div><strong>ID:</strong> <%= qr.qrId.slice(0, 8) %>...</div>
+                    <div class="qr-status <%= qr.hasFile ? 'status-used' : 'status-unused' %>">
+                        <%= qr.hasFile ? '已使用' : '未使用' %>
+                    </div>
+                    <div class="date"><%= new Date(qr.createdAt).toLocaleString() %></div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+
+    <script>
+        async function generateQRCodes() {
+            try {
+                const count = prompt('请输入要生成的二维码数量:', '1');
+                if (!count) return;
+                
+                const response = await fetch(`/api/qrcode/generate?count=${count}`, {
+                    method: 'GET'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`成功生成 ${result.data.length} 个二维码`);
+                    location.reload();
+                } else {
+                    alert('生成失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('生成失败，请重试');
+            }
+        }
+    </script>
+</body>
+</html> 
