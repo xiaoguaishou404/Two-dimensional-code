@@ -5,15 +5,33 @@ const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const cors = require('cors');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 require('dotenv').config();
 const connectDB = require('./config/db');
 const QRCodeModel = require('./models/QRCode');
+const User = require('./models/User');
 
 // 连接数据库
 connectDB();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Session 配置
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/qrcode_db',
+        ttl: 24 * 60 * 60 // 1 day
+    }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
+    }
+}));
 
 // 允许所有跨域请求
 app.use(cors({
@@ -22,12 +40,50 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// 添加 JSON 解析中间件
+// 添加 JSON 和 form 解析中间件
 app.use(express.json());
-
+app.use(express.urlencoded({ extended: true }));
 // 设置模板引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// 身份验证中间件
+const requireLogin = (req, res, next) => {
+    if (req.session.userId) {
+        next();
+    } else {
+        res.redirect('/login');
+    }
+};
+
+// 登录页面
+app.get('/login', (req, res) => {
+    res.render('login', { error: null });
+});
+
+// 处理登录请求
+app.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+
+        if (!user || !(await user.comparePassword(password))) {
+            return res.render('login', { error: '用户名或密码错误' });
+        }
+
+        req.session.userId = user._id;
+        res.redirect('/');
+    } catch (error) {
+        console.error(error);
+        res.render('login', { error: '登录失败，请重试' });
+    }
+});
+
+// 登出
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
 
 // 存储上传文件的目录
 const uploadDir = path.join(__dirname, process.env.UPLOAD_DIR || 'uploads');
@@ -204,8 +260,8 @@ app.get('/qr/:qrId', async (req, res) => {
     }
 });
 
-// 主页路由
-app.get('/', async (req, res) => {
+// 主页路由 - 添加登录验证
+app.get('/', requireLogin, async (req, res) => {
     try {
         // 获取统计数据
         const totalQRCodes = await QRCodeModel.countDocuments();
