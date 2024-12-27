@@ -111,6 +111,26 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .qr-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .qr-id {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .qr-url {
+            font-size: 12px;
+            color: #666;
+            margin: 8px 0;
+            word-break: break-all;
         }
         .qr-status {
             display: inline-block;
@@ -177,13 +197,16 @@
 
         <div class="qr-list">
             <% qrCodes.forEach(function(qr) { %>
-                <div class="qr-card">
-                    <div><strong>ID:</strong> <%= qr.qrId.slice(0, 8) %>...</div>
+                <a href="/qr/<%= qr.qrId %>" class="qr-card">
+                    <div class="qr-id">ID: <%= qr.qrId.slice(0, 8) %>...</div>
+                    <div class="qr-url">
+                        <%= req.protocol %>://<%= req.get('host') %>/qr/<%= qr.qrId %>
+                    </div>
                     <div class="qr-status <%= qr.hasFile ? 'status-used' : 'status-unused' %>">
                         <%= qr.hasFile ? '已使用' : '未使用' %>
                     </div>
                     <div class="date"><%= new Date(qr.createdAt).toLocaleString() %></div>
-                </div>
+                </a>
             <% }); %>
         </div>
     </div>

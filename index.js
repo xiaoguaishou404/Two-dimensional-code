@@ -227,7 +227,8 @@ app.get('/', async (req, res) => {
             usedQRCodes,
             unusedQRCodes,
             recentUploads,
-            qrCodes
+            qrCodes,
+            req
         });
     } catch (error) {
         console.error(error);
