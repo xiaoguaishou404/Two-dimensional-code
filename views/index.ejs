@@ -58,6 +58,35 @@
         .upload-item:last-child {
             border-bottom: none;
         }
+        .upload-item-info {
+            flex-grow: 1;
+            margin-right: 20px;
+        }
+        .upload-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .preview-link {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .preview-link:hover {
+            text-decoration: underline;
+        }
+        .download-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .download-button:hover {
+            background-color: #45a049;
+        }
         .generate-button {
             background-color: #4CAF50;
             color: white;
@@ -131,11 +160,16 @@
             <ul class="upload-list">
                 <% recentUploads.forEach(function(upload) { %>
                     <li class="upload-item">
-                        <div>
-                            <strong><%= upload.originalFilename %></strong>
-                            <span class="date"><%= new Date(upload.createdAt).toLocaleString() %></span>
+                        <div class="upload-item-info">
+                            <a href="/qr/<%= upload.qrId %>" class="preview-link">
+                                <strong><%= upload.originalFilename %></strong>
+                            </a>
+                            <div class="date"><%= new Date(upload.createdAt).toLocaleString() %></div>
                         </div>
-                        <a href="/file/<%= upload.qrId %>" class="download-button" download>下载</a>
+                        <div class="upload-item-actions">
+                            <a href="/qr/<%= upload.qrId %>" class="download-button" style="background-color: #1976d2;">预览</a>
+                            <a href="/file/<%= upload.qrId %>" class="download-button" download="<%= upload.originalFilename %>">下载</a>
+                        </div>
                     </li>
                 <% }); %>
             </ul>
