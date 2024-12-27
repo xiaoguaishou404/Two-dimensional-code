@@ -2,16 +2,21 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('../models/User');
 
+if (!process.env.MONGODB_URI || !process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) {
+    console.error('缺少必要的环境变量配置（MONGODB_URI, ADMIN_USERNAME, ADMIN_PASSWORD）');
+    process.exit(1);
+}
+
 const createAdmin = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/qrcode_db', {
+        await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
 
         const adminUser = new User({
-            username: process.env.ADMIN_USERNAME || 'admin',
-            password: process.env.ADMIN_PASSWORD || 'admin123'
+            username: process.env.ADMIN_USERNAME,
+            password: process.env.ADMIN_PASSWORD
         });
 
         await adminUser.save();

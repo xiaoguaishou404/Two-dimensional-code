@@ -12,19 +12,24 @@ const connectDB = require('./config/db');
 const QRCodeModel = require('./models/QRCode');
 const User = require('./models/User');
 
+if (!process.env.PORT || !process.env.MONGODB_URI || !process.env.SESSION_SECRET) {
+    console.error('缺少必要的环境变量配置');
+    process.exit(1);
+}
+
 // 连接数据库
 connectDB();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 // Session 配置
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/qrcode_db',
+        mongoUrl: process.env.MONGODB_URI,
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
@@ -43,6 +48,7 @@ app.use(cors({
 // 添加 JSON 和 form 解析中间件
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 // 设置模板引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -86,7 +92,12 @@ app.get('/logout', (req, res) => {
 });
 
 // 存储上传文件的目录
-const uploadDir = path.join(__dirname, process.env.UPLOAD_DIR || 'uploads');
+if (!process.env.UPLOAD_DIR) {
+    console.error('缺少 UPLOAD_DIR 环境变量配置');
+    process.exit(1);
+}
+
+const uploadDir = path.join(__dirname, process.env.UPLOAD_DIR);
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
@@ -106,7 +117,7 @@ const storage = multer.diskStorage({
 const upload = multer({ 
     storage: storage,
     limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760 // 默认 10MB
+        fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760
     }
 });
 
