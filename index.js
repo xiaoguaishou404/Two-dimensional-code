@@ -114,11 +114,40 @@ const storage = multer.diskStorage({
     }
 });
 
+// 文件类型验证
+const fileFilter = (req, file, cb) => {
+    // 允许的文件类型
+    const allowedTypes = {
+        // 图片类型
+        'image/jpeg': true,
+        'image/png': true,
+        'image/gif': true,
+        'image/webp': true,
+        // 音频类型
+        'audio/mpeg': true,
+        'audio/wav': true,
+        'audio/ogg': true,
+        'audio/mp4': true,
+        // 视频类型
+        'video/mp4': true,
+        'video/webm': true,
+        'video/ogg': true,
+        'video/quicktime': true
+    };
+
+    if (allowedTypes[file.mimetype]) {
+        cb(null, true);
+    } else {
+        cb(new Error('不支持的文件类型。只允许上传图片、音频和视频文件。'), false);
+    }
+};
+
 const upload = multer({ 
     storage: storage,
     limits: {
         fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760
-    }
+    },
+    fileFilter: fileFilter
 });
 
 // 生成新的二维码 API

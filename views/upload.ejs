@@ -128,8 +128,18 @@
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">点击或拖拽文件到这里</div>
-                <div class="upload-text" style="font-size: 14px;">支持任意类型文件</div>
-                <input type="file" name="file" id="fileInput" class="file-input" required>
+                <div class="upload-text" style="font-size: 14px;">
+                    支持的文件类型：<br>
+                    图片 (JPG, PNG, GIF, WebP)<br>
+                    音频 (MP3, WAV, OGG)<br>
+                    视频 (MP4, WebM, QuickTime)
+                </div>
+                <input type="file" 
+                    name="file" 
+                    id="fileInput" 
+                    class="file-input" 
+                    accept="image/*,audio/*,video/*" 
+                    required>
             </div>
             <div class="file-info" id="fileInfo">
                 <div class="file-name" id="fileName"></div>
@@ -197,6 +207,21 @@
             }
 
             const file = files[0];
+            const allowedTypes = [
+                // 图片类型
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                // 音频类型
+                'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4',
+                // 视频类型
+                'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                showError('不支持的文件类型。只允许上传图片、音频和视频文件。');
+                resetFileInfo();
+                return;
+            }
+
             if (file.size > maxFileSize) {
                 showError(`文件大小超过限制 (${formatFileSize(maxFileSize)})`);
                 resetFileInfo();
@@ -208,7 +233,12 @@
         }
 
         function showFileInfo(file) {
-            fileName.textContent = file.name;
+            let fileTypeIcon = '📄';
+            if (file.type.startsWith('image/')) fileTypeIcon = '🖼️';
+            if (file.type.startsWith('audio/')) fileTypeIcon = '🎵';
+            if (file.type.startsWith('video/')) fileTypeIcon = '🎥';
+
+            fileName.textContent = `${fileTypeIcon} ${file.name}`;
             fileSize.textContent = formatFileSize(file.size);
             fileInfo.style.display = 'block';
             submitButton.disabled = false;

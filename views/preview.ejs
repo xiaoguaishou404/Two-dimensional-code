@@ -150,6 +150,29 @@
                 justify-content: center;
             }
         }
+        .media-container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .media-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+        .media-player {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 4px;
+            background-color: white;
+        }
+        audio.media-player {
+            height: 40px;
+        }
+        video.media-player {
+            max-height: 400px;
+        }
     </style>
 </head>
 <body>
@@ -186,8 +209,24 @@
             </div>
 
             <div class="preview-area">
-                <% if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) { %>
+                <% if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
                     <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image" id="previewImage">
+                <% } else if (filename.match(/\.(mp3|wav|ogg)$/i)) { %>
+                    <div class="media-container">
+                        <div class="media-icon">🎵</div>
+                        <audio controls class="media-player">
+                            <source src="/file/<%= qrId %>" type="audio/<%= filename.split('.').pop().toLowerCase() %>">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                <% } else if (filename.match(/\.(mp4|webm|ogg|mov|quicktime)$/i)) { %>
+                    <div class="media-container">
+                        <div class="media-icon">🎥</div>
+                        <video controls class="media-player">
+                            <source src="/file/<%= qrId %>" type="video/<%= filename.split('.').pop().toLowerCase() %>">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
                 <% } else { %>
                     <div class="no-preview">
                         <div class="no-preview-icon">📄</div>
