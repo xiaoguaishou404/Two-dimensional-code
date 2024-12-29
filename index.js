@@ -33,7 +33,7 @@ app.use(session({
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false,
         maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
