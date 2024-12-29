@@ -7,54 +7,215 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+        .container {
             max-width: 800px;
             margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
             padding: 20px;
             text-align: center;
         }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
         .preview-container {
-            margin: 20px 0;
-            padding: 20px;
-            border: 1px solid #ccc;
+            padding: 30px;
+        }
+        .file-info {
+            background-color: #f8f9fa;
             border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .file-info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .file-info-label {
+            color: #666;
+            width: 100px;
+            flex-shrink: 0;
+        }
+        .file-info-value {
+            color: #333;
+            font-weight: 500;
+            word-break: break-all;
+        }
+        .preview-area {
+            margin-bottom: 30px;
+            text-align: center;
         }
         .preview-image {
             max-width: 100%;
-            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+        }
+        .preview-image:hover {
+            transform: scale(1.02);
+        }
+        .preview-image.zoomed {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1.5);
+            max-height: 90vh;
+            max-width: 90vw;
+            z-index: 1000;
+            cursor: zoom-out;
+        }
+        .no-preview {
+            padding: 40px;
+            text-align: center;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            color: #666;
+        }
+        .no-preview-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #999;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s ease;
         }
         .download-button {
             background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            text-decoration: none;
-            display: inline-block;
-            margin: 10px 0;
         }
         .download-button:hover {
             background-color: #45a049;
+            transform: translateY(-2px);
         }
-        .file-info {
-            margin: 10px 0;
-            color: #666;
+        .back-button {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .back-button:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+        .button-icon {
+            margin-right: 8px;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 999;
+        }
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+            }
+            .preview-container {
+                padding: 20px;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .button {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>文件预览</h1>
-    <div class="preview-container">
-        <% if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) { %>
-            <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image">
-        <% } else { %>
-            <p>此文件类型无法预览</p>
-        <% } %>
-        <div class="file-info">
-            <p>文件名: <%= originalFilename %></p>
+    <div class="container">
+        <div class="header">
+            <h1>文件预览</h1>
         </div>
-        <a href="/file/<%= qrId %>" class="download-button" download="<%= originalFilename %>">下载文件</a>
+        <div class="preview-container">
+            <div class="file-info">
+                <div class="file-info-item">
+                    <div class="file-info-label">文件名：</div>
+                    <div class="file-info-value"><%= originalFilename %></div>
+                </div>
+                <div class="file-info-item">
+                    <div class="file-info-label">文件类型：</div>
+                    <div class="file-info-value"><%= originalFilename.split('.').pop().toUpperCase() %></div>
+                </div>
+            </div>
+
+            <div class="preview-area">
+                <% if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) { %>
+                    <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image" id="previewImage">
+                <% } else { %>
+                    <div class="no-preview">
+                        <div class="no-preview-icon">📄</div>
+                        <p>此文件类型暂不支持预览</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <div class="actions">
+                <a href="/file/<%= qrId %>" class="button download-button" download="<%= originalFilename %>">
+                    <span class="button-icon">⬇️</span>
+                    下载文件
+                </a>
+                <a href="/" class="button back-button">
+                    <span class="button-icon">←</span>
+                    返回首页
+                </a>
+            </div>
+        </div>
     </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+        // 图片预览放大功能
+        const previewImage = document.getElementById('previewImage');
+        const overlay = document.getElementById('overlay');
+
+        if (previewImage && overlay) {
+            previewImage.addEventListener('click', function() {
+                if (this.classList.contains('zoomed')) {
+                    this.classList.remove('zoomed');
+                    overlay.style.display = 'none';
+                } else {
+                    this.classList.add('zoomed');
+                    overlay.style.display = 'block';
+                }
+            });
+
+            overlay.addEventListener('click', function() {
+                previewImage.classList.remove('zoomed');
+                this.style.display = 'none';
+            });
+        }
+    </script>
 </body>
 </html> 
