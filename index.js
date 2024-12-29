@@ -305,5 +305,5 @@ app.get('/', requireLogin, async (req, res) => {
 
 app.listen(port, () => {
     console.log(`服务器运行在 http://localhost:${port}`);
-    console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`环境: ${process.env.NODE_ENV}`);
 }); 
