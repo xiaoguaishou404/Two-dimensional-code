@@ -148,7 +148,7 @@
         const fileSize = document.getElementById('fileSize');
         const submitButton = document.getElementById('submitButton');
         const errorMessage = document.getElementById('errorMessage');
-        const maxFileSize = <%= process.env.MAX_FILE_SIZE || 10485760 %>;
+        const maxFileSize = <%= maxFileSize %>;
 
         // 拖拽效果
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

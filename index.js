@@ -259,11 +259,15 @@ app.get('/qr/:qrId', async (req, res) => {
             res.render('preview', { 
                 filename: qrInfo.filename,
                 qrId: qrId,
-                originalFilename: qrInfo.originalFilename
+                originalFilename: qrInfo.originalFilename,
+                maxFileSize: process.env.MAX_FILE_SIZE
             });
         } else {
             // 如果还没有上传文件，显示上传页面
-            res.render('upload', { qrId });
+            res.render('upload', { 
+                qrId,
+                maxFileSize: process.env.MAX_FILE_SIZE
+            });
         }
     } catch (error) {
         console.error(error);
