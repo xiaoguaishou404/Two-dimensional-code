@@ -72,11 +72,18 @@
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(1.5);
-            max-height: 90vh;
-            max-width: 90vw;
+            transform: translate(-50%, -50%);
+            max-height: 95vh;
+            max-width: 95vw;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            margin: 0;
             z-index: 1000;
             cursor: zoom-out;
+            background-color: transparent;
+            box-shadow: none;
+            border-radius: 0;
         }
         .no-preview {
             padding: 40px;
@@ -132,8 +139,10 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.9);
             z-index: 999;
+            cursor: zoom-out;
+            backdrop-filter: blur(2px);
         }
         @media (max-width: 600px) {
             .container {
@@ -173,6 +182,25 @@
         video.media-player {
             max-height: 400px;
         }
+        .preview-image-container {
+            position: relative;
+            display: inline-block;
+        }
+        .zoom-hint {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .preview-image-container:hover .zoom-hint {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -210,7 +238,10 @@
 
             <div class="preview-area">
                 <% if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
-                    <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image" id="previewImage">
+                    <div class="preview-image-container">
+                        <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image" id="previewImage">
+                        <div class="zoom-hint">点击放大</div>
+                    </div>
                 <% } else if (filename.match(/\.(mp3|wav|ogg)$/i)) { %>
                     <div class="media-container">
                         <div class="media-icon">🎵</div>
@@ -256,19 +287,31 @@
         const overlay = document.getElementById('overlay');
 
         if (previewImage && overlay) {
-            previewImage.addEventListener('click', function() {
-                if (this.classList.contains('zoomed')) {
-                    this.classList.remove('zoomed');
-                    overlay.style.display = 'none';
-                } else {
-                    this.classList.add('zoomed');
-                    overlay.style.display = 'block';
+            let isZoomed = false;
+
+            function toggleZoom() {
+                isZoomed = !isZoomed;
+                previewImage.classList.toggle('zoomed');
+                overlay.style.display = isZoomed ? 'block' : 'none';
+                document.body.style.overflow = isZoomed ? 'hidden' : '';
+            }
+
+            previewImage.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleZoom();
+            });
+
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    toggleZoom();
                 }
             });
 
-            overlay.addEventListener('click', function() {
-                previewImage.classList.remove('zoomed');
-                this.style.display = 'none';
+            // 添加键盘事件支持
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isZoomed) {
+                    toggleZoom();
+                }
             });
         }
     </script>
