@@ -78,7 +78,7 @@ app.post('/login', async (req, res) => {
         }
 
         req.session.userId = user._id;
-        res.redirect('/');
+        res.redirect('/root');
     } catch (error) {
         console.error(error);
         res.render('login', { error: '登录失败，请重试' });
@@ -304,8 +304,13 @@ app.get('/qr/:qrId', async (req, res) => {
     }
 });
 
-// 主页路由 - 添加登录验证
-app.get('/', requireLogin, async (req, res) => {
+// 主页路由 - 欢迎页面
+app.get('/', (req, res) => {
+    res.render('welcome');
+});
+
+// 管理系统路由 - 添加登录验证
+app.get('/root', requireLogin, async (req, res) => {
     try {
         // 获取统计数据
         const totalQRCodes = await QRCodeModel.countDocuments();
