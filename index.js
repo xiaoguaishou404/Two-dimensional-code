@@ -1,49 +1,71 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
 const cors = require('cors');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
-require('dotenv').config();
-const connectDB = require('./config/db');
+const cookieParser = require('cookie-parser');
 const QRCodeModel = require('./models/QRCode');
-const User = require('./models/User');
+const supabase = require('./config/supabase');
+const { isProduction, checkRequiredEnvVars } = require('./config/env');
 
-if (!process.env.PORT || !process.env.MONGODB_URI || !process.env.SESSION_SECRET) {
-    console.error('缺少必要的环境变量配置');
-    process.exit(1);
-}
-
-// 连接数据库
-connectDB();
 
 const app = express();
 const port = process.env.PORT;
 
-// Session 配置
-app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        ttl: 24 * 60 * 60 // 1 day
-    }),
-    cookie: {
-        secure: false,
-        maxAge: 24 * 60 * 60 * 1000 // 1 day
-    }
-}));
 
-// 允许所有跨域请求
-app.use(cors({
-    origin: '*',
+const STORAGE_BUCKET = process.env.STORAGE_BUCKET;
+// 使用环境配置模块中的isProduction函数
+const productionMode = isProduction();
+
+// 在应用启动前检查环境变量
+checkRequiredEnvVars();
+
+app.set('trust proxy', 1); // 信任第一个代理
+
+
+// 使用 cookie-parser
+app.use(cookieParser(process.env.SESSION_SECRET));
+
+
+
+// Session 配置
+const sessionConfig = {
+    secret: process.env.SESSION_SECRET,
+    name: 'sessionId',
+    // 信任代理头，否则会影响secure判断。
+    proxy: true, 
+    cookie: {
+        secure: productionMode,
+        maxAge: 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+    }
+};
+
+app.use(session(sessionConfig));
+
+// 配置 CORS
+const corsOptions = {
+    origin: true, // 允许所有来源，同时支持credentials
+    credentials: true,// 允许所有来源请求携带cookie
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie']
+};
+
+app.use(cors(corsOptions));
+
+// 添加调试中间件
+app.use((req, res, next) => {
+    console.log('请求路径:', req.path);
+    console.log('Session ID:', req.sessionID);
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('Signed Cookies:', req.signedCookies);
+    console.log('Headers:', req.headers);
+    next();
+});
 
 // 添加 JSON 和 form 解析中间件
 app.use(express.json());
@@ -55,7 +77,9 @@ app.set('views', path.join(__dirname, 'views'));
 
 // 身份验证中间件
 const requireLogin = (req, res, next) => {
-    if (req.session.userId) {
+
+    if (req.session && req.session.isAdmin) {
+        console.log('管理员登录通过');
         next();
     } else {
         res.redirect('/login');
@@ -71,17 +95,23 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        const user = await User.findOne({ username });
-
-        if (!user || !(await user.comparePassword(password))) {
-            return res.render('login', { error: '用户名或密码错误' });
+        
+        if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+            req.session.isAdmin = true;
+            req.session.username = username;
+            
+            // 确保 session 被保存
+            req.session.save((err) => {
+                if (err) { return res.render('login', { error: err });}
+                
+                res.redirect('/root');
+            });
+        } else {
+            res.render('login', { error: '用户名或密码错误' });
         }
-
-        req.session.userId = user._id;
-        res.redirect('/root');
     } catch (error) {
-        console.error(error);
-        res.render('login', { error: '登录失败，请重试' });
+        console.error('登录捕获到错误:', error);
+        res.render('login', { error });
     }
 });
 
@@ -91,63 +121,35 @@ app.get('/logout', (req, res) => {
     res.redirect('/login');
 });
 
-// 存储上传文件的目录
-if (!process.env.UPLOAD_DIR) {
-    console.error('缺少 UPLOAD_DIR 环境变量配置');
-    process.exit(1);
-}
-
-const uploadDir = path.join(__dirname, process.env.UPLOAD_DIR);
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-
-// 配置文件存储
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        const qrId = req.params.qrId;
-        const ext = path.extname(file.originalname);
-        cb(null, qrId + ext);
-    }
-});
-
-// 文件类型验证
-const fileFilter = (req, file, cb) => {
-    // 允许的文件类型
-    const allowedTypes = {
-        // 图片类型
-        'image/jpeg': true,
-        'image/png': true,
-        'image/gif': true,
-        'image/webp': true,
-        // 音频类型
-        'audio/mpeg': true,
-        'audio/wav': true,
-        'audio/ogg': true,
-        'audio/mp4': true,
-        // 视频类型
-        'video/mp4': true,
-        'video/webm': true,
-        'video/ogg': true,
-        'video/quicktime': true
-    };
-
-    if (allowedTypes[file.mimetype]) {
-        cb(null, true);
-    } else {
-        cb(new Error('不支持的文件类型。只允许上传图片、音频和视频文件。'), false);
-    }
-};
-
+// 配置内存存储的 multer
+const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
     limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760
+        fileSize: parseInt(process.env.MAX_FILE_SIZE)
     },
-    fileFilter: fileFilter
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = {
+            'image/jpeg': true,
+            'image/png': true,
+            'image/gif': true,
+            'image/webp': true,
+            'audio/mpeg': true,
+            'audio/wav': true,
+            'audio/ogg': true,
+            'audio/mp4': true,
+            'video/mp4': true,
+            'video/webm': true,
+            'video/ogg': true,
+            'video/quicktime': true
+        };
+
+        if (allowedTypes[file.mimetype]) {
+            cb(null, true);
+        } else {
+            cb(new Error('不支持的文件类型。只允许上传图片、音频和视频文件。'), false);
+        }
+    }
 });
 
 // 生成新的二维码 API
@@ -159,25 +161,25 @@ app.get('/api/qrcode/generate', async (req, res) => {
         if (count > 100) {
             return res.status(400).json({
                 success: false,
-                error: '单次最多生成 100 个二维码'
+                message: '单次最多生成 100 个二维码'
             });
         }
         
         const qrCodes = [];
 
         for (let i = 0; i < count; i++) {
-            const qrId = uuidv4();
-            const qrUrl = `${req.protocol}://${req.get('host')}/qr/${qrId}`;
+            const qr_id = uuidv4();
+            const qr_url = `${req.protocol}://${req.get('host')}/qr/${qr_id}`;
             
             // 在数据库中创建新记录
             await QRCodeModel.create({
-                qrId: qrId,
-                hasFile: false
+                qr_id: qr_id,
+                has_file: false
             });
             
             qrCodes.push({
-                qrId: qrId,
-                qrUrl: qrUrl
+                qr_id: qr_id,
+                qr_url: qr_url
             });
         }
         
@@ -186,116 +188,146 @@ app.get('/api/qrcode/generate', async (req, res) => {
             data: qrCodes
         });
     } catch (error) {
-        console.error(error);
+        console.error('生成二维码错误:', error);
         res.status(500).json({
             success: false,
-            error: '服务器错误'
+            message: '生成二维码失败'
         });
     }
 });
 
 // 获取二维码状态 API
-app.get('/api/qrcode/:qrId/status', async (req, res) => {
+app.get('/api/qrcode/:qr_id/status', async (req, res) => {
     try {
-        const qrId = req.params.qrId;
-        const qrInfo = await QRCodeModel.findOne({ qrId });
+        const qr_id = req.params.qr_id;
+        const qrInfo = await QRCodeModel.findOne({ qr_id });
         
         if (!qrInfo) {
             return res.status(404).json({
                 success: false,
-                error: '二维码不存在'
+                message: '二维码不存在'
             });
         }
         
         res.json({
             success: true,
             data: {
-                qrId: qrInfo.qrId,
-                hasFile: qrInfo.hasFile,
-                filename: qrInfo.originalFilename,
-                createdAt: qrInfo.createdAt
+                qr_id: qrInfo.qr_id,
+                has_file: qrInfo.has_file,
+                filename: qrInfo.original_filename,
+                created_at: qrInfo.created_at
             }
         });
     } catch (error) {
-        console.error(error);
+        console.error('获取二维码状态错误:', error);
         res.status(500).json({
             success: false,
-            error: '服务器错误'
+            message: '获取二维码状态失败'
         });
     }
 });
 
 // 处理文件上传
-app.post('/upload/:qrId', upload.single('file'), async (req, res) => {
+app.post('/upload/:qr_id', upload.single('file'), async (req, res) => {
     try {
-        const qrId = req.params.qrId;
-        const qrInfo = await QRCodeModel.findOne({ qrId });
+        const qr_id = req.params.qr_id;
+        const qrInfo = await QRCodeModel.findOne({ qr_id });
         
         if (!qrInfo) {
             return res.status(404).send('二维码不存在');
         }
         
-        if (qrInfo.hasFile) {
+        if (qrInfo.has_file) {
             return res.status(400).send('该二维码已经上传过文件');
         }
-        
+
+        const file = req.file;
+        const file_ext = path.extname(file.originalname);
+        const filename = `${qr_id}_${file_ext}`;
+
+        // 上传到 Supabase Storage
+        const { data, error } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(filename, file.buffer, {
+                contentType: file.mimetype,
+                upsert: true
+            });
+
+        if (error) {
+            console.error('文件上传错误:', error);
+            return res.status(500).send('文件上传失败');
+        }
+
+        // 获取文件的公共URL
+        const { data: { publicUrl: file_url } } = supabase.storage
+            .from(STORAGE_BUCKET)
+            .getPublicUrl(filename);
+
         // 更新数据库记录
         await QRCodeModel.findOneAndUpdate(
-            { qrId },
+            { qr_id },
             {
-                hasFile: true,
-                filename: req.file.filename,
-                originalFilename: req.file.originalname
+                has_file: true,
+                filename: filename,
+                original_filename: file.originalname,
+                file_url: file_url
             }
         );
         
-        res.redirect(`/qr/${qrId}`);
+        res.redirect(`/qr/${qr_id}`);
     } catch (error) {
-        console.error(error);
-        res.status(500).send('服务器错误');
+        console.error('服务器错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器处理请求时出错'
+        });
     }
 });
 
 // 文件预览/下载
-app.get('/file/:qrId', async (req, res) => {
+app.get('/file/:qr_id', async (req, res) => {
     try {
-        const qrId = req.params.qrId;
-        const qrInfo = await QRCodeModel.findOne({ qrId });
+        const qr_id = req.params.qr_id;
+        const qrInfo = await QRCodeModel.findOne({ qr_id });
         
-        if (!qrInfo || !qrInfo.hasFile) {
+        if (!qrInfo || !qrInfo.has_file) {
             return res.status(404).send('文件不存在');
         }
-        
-        res.sendFile(path.join(uploadDir, qrInfo.filename));
+
+        // 直接重定向到文件的公共URL
+        res.redirect(qrInfo.file_url);
     } catch (error) {
-        console.error(error);
-        res.status(500).send('服务器错误');
+        console.error('获取文件URL错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '获取文件失败'
+        });
     }
 });
 
 // 处理二维码扫描
-app.get('/qr/:qrId', async (req, res) => {
+app.get('/qr/:qr_id', async (req, res) => {
     try {
-        const qrId = req.params.qrId;
-        const qrInfo = await QRCodeModel.findOne({ qrId });
+        const qr_id = req.params.qr_id;
+        const qrInfo = await QRCodeModel.findOne({ qr_id });
         
         if (!qrInfo) {
             return res.status(404).send('二维码不存在');
         }
         
-        if (qrInfo.hasFile) {
+        if (qrInfo.has_file) {
             // 如果已经上传了文件，显示预览页面
             res.render('preview', { 
                 filename: qrInfo.filename,
-                qrId: qrId,
-                originalFilename: qrInfo.originalFilename,
-                maxFileSize: process.env.MAX_FILE_SIZE
+                qr_id: qr_id,
+                original_filename: qrInfo.original_filename,
+                max_file_size: process.env.MAX_FILE_SIZE
             });
         } else {
             // 如果还没有上传文件，显示上传页面
             res.render('upload', { 
-                qrId,
-                maxFileSize: process.env.MAX_FILE_SIZE
+                qr_id,
+                max_file_size: process.env.MAX_FILE_SIZE
             });
         }
     } catch (error) {
@@ -313,26 +345,29 @@ app.get('/', (req, res) => {
 app.get('/root', requireLogin, async (req, res) => {
     try {
         // 获取统计数据
-        const totalQRCodes = await QRCodeModel.countDocuments();
-        const usedQRCodes = await QRCodeModel.countDocuments({ hasFile: true });
-        const unusedQRCodes = totalQRCodes - usedQRCodes;
+        const total_qr_codes = await QRCodeModel.countDocuments();
+        const used_qr_codes = await QRCodeModel.countDocuments({ has_file: true });
+        const unused_qr_codes = total_qr_codes - used_qr_codes;
 
         // 获取最近上传的文件
-        const recentUploads = await QRCodeModel.find({ hasFile: true })
-            .sort({ createdAt: -1 })
-            .limit(10);
+        const recent_uploads = await QRCodeModel.find({ 
+            has_file: true,
+            sort: { created_at: -1 },
+            limit: 10
+        });
 
         // 获取最近创建的二维码
-        const qrCodes = await QRCodeModel.find()
-            .sort({ createdAt: -1 })
-            .limit(20);
+        const qr_codes = await QRCodeModel.find({
+            sort: { created_at: -1 },
+            limit: 20
+        });
 
         res.render('index', {
-            totalQRCodes,
-            usedQRCodes,
-            unusedQRCodes,
-            recentUploads,
-            qrCodes,
+            total_qr_codes,
+            used_qr_codes,
+            unused_qr_codes,
+            recent_uploads,
+            qr_codes,
             req
         });
     } catch (error) {

@@ -1,9 +1,9 @@
 node_modules/
 .env
-.env.example
 uploads/
 *.log
 .DS_Store
+.vercel
 Thumbs.db
 .idea/
 .vscode/

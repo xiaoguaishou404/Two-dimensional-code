@@ -211,17 +211,17 @@
             <div class="file-info">
                 <div class="file-info-item">
                     <div class="file-info-label">文件名：</div>
-                    <div class="file-info-value"><%= originalFilename %></div>
+                    <div class="file-info-value"><%= original_filename %></div>
                 </div>
                 <div class="file-info-item">
                     <div class="file-info-label">文件类型：</div>
-                    <div class="file-info-value"><%= originalFilename.split('.').pop().toUpperCase() %></div>
+                    <div class="file-info-value"><%= original_filename.split('.').pop().toUpperCase() %></div>
                 </div>
                 <div class="file-info-item">
                     <div class="file-info-label">文件大小：</div>
                     <div class="file-info-value">
                         <script>
-                            const maxSize = <%= maxFileSize %>;
+                            const max_file_size = '<%= max_file_size %>' * 1;
                             function formatFileSize(bytes) {
                                 if (bytes === 0) return '0 Bytes';
                                 const k = 1024;
@@ -229,7 +229,7 @@
                                 const i = Math.floor(Math.log(bytes) / Math.log(k));
                                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
                             }
-                            document.write(`最大允许：${formatFileSize(maxSize)}`);
+                            document.write(`最大允许：${formatFileSize(max_file_size)}`);
                         </script>
                     </div>
                 </div>
@@ -238,22 +238,22 @@
             <div class="preview-area">
                 <% if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
                     <div class="preview-image-container">
-                        <img src="/file/<%= qrId %>" alt="预览图片" class="preview-image" id="previewImage">
+                        <img src="/file/<%= qr_id %>" alt="预览图片" class="preview-image" id="previewImage">
                         <div class="zoom-hint">点击放大</div>
                     </div>
                 <% } else if (filename.match(/\.(mp3|wav|ogg)$/i)) { %>
                     <div class="media-container">
                         <div class="media-icon">🎵</div>
                         <audio controls class="media-player">
-                            <source src="/file/<%= qrId %>" type="audio/<%= filename.split('.').pop().toLowerCase() %>">
+                            <source src="/file/<%= qr_id %>" type="audio/<%= filename.split('.').pop().toLowerCase() %>">
                             您的浏览器不支持音频播放
                         </audio>
                     </div>
-                <% } else if (filename.match(/\.(mp4|webm|ogg|mov|quicktime)$/i)) { %>
+                <% } else if (filename.match(/\.(mp4|webm|ogg|quicktime)$/i)) { %>
                     <div class="media-container">
                         <div class="media-icon">🎥</div>
                         <video controls class="media-player">
-                            <source src="/file/<%= qrId %>" type="video/<%= filename.split('.').pop().toLowerCase() %>">
+                            <source src="/file/<%= qr_id %>" type="video/<%= filename.split('.').pop().toLowerCase() %>">
                             您的浏览器不支持视频播放
                         </video>
                     </div>
@@ -266,7 +266,7 @@
             </div>
 
             <div class="actions">
-                <a href="/file/<%= qrId %>" class="button download-button" download="<%= originalFilename %>">
+                <a href="/file/<%= qr_id %>" class="button download-button" download="<%= original_filename %>">
                     <span class="button-icon">⬇️</span>
                     下载文件
                 </a>

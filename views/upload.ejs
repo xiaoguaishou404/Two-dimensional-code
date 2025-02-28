@@ -124,7 +124,7 @@
             <h1>上传文件</h1>
             <p>选择或拖拽文件到此处上传</p>
         </div>
-        <form action="/upload/<%= qrId %>" method="post" enctype="multipart/form-data" id="uploadForm">
+        <form action="/upload/<%= qr_id %>" method="post" enctype="multipart/form-data" id="uploadForm">
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">点击或拖拽文件到这里</div>
@@ -158,7 +158,7 @@
         const fileSize = document.getElementById('fileSize');
         const submitButton = document.getElementById('submitButton');
         const errorMessage = document.getElementById('errorMessage');
-        const maxFileSize = <%= maxFileSize %>;
+        const max_file_size = '<%= max_file_size %>' * 1;
 
         // 拖拽效果
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -222,8 +222,8 @@
                 return;
             }
 
-            if (file.size > maxFileSize) {
-                showError(`文件大小超过限制 (${formatFileSize(maxFileSize)})`);
+            if (file.size > max_file_size) {
+                showError(`文件大小超过限制 (${formatFileSize(max_file_size)})`);
                 resetFileInfo();
                 return;
             }

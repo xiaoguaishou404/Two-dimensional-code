@@ -163,32 +163,32 @@
         <div class="stats-container">
             <div class="stat-card">
                 <h3>总二维码数</h3>
-                <div class="stat-number"><%= totalQRCodes %></div>
+                <div class="stat-number"><%= total_qr_codes %></div>
             </div>
             <div class="stat-card">
                 <h3>已使用</h3>
-                <div class="stat-number"><%= usedQRCodes %></div>
+                <div class="stat-number"><%= used_qr_codes %></div>
             </div>
             <div class="stat-card">
                 <h3>未使用</h3>
-                <div class="stat-number"><%= unusedQRCodes %></div>
+                <div class="stat-number"><%= unused_qr_codes %></div>
             </div>
         </div>
 
         <div class="recent-uploads">
             <h2>最近上传</h2>
             <ul class="upload-list">
-                <% recentUploads.forEach(function(upload) { %>
+                <% recent_uploads.forEach(function(upload) { %>
                     <li class="upload-item">
                         <div class="upload-item-info">
-                            <a href="/qr/<%= upload.qrId %>" class="preview-link">
-                                <strong><%= upload.originalFilename %></strong>
+                            <a href="/qr/<%= upload.qr_id %>" class="preview-link">
+                                <strong><%= upload.original_filename %></strong>
                             </a>
-                            <div class="date"><%= new Date(upload.createdAt).toLocaleString() %></div>
+                            <div class="date"><%= new Date(upload.created_at).toLocaleString() %></div>
                         </div>
                         <div class="upload-item-actions">
-                            <a href="/qr/<%= upload.qrId %>" class="download-button" style="background-color: #1976d2;">预览</a>
-                            <a href="/file/<%= upload.qrId %>" class="download-button" download="<%= upload.originalFilename %>">下载</a>
+                            <a href="/qr/<%= upload.qr_id %>" class="download-button" style="background-color: #1976d2;">预览</a>
+                            <a href="/file/<%= upload.qr_id %>" class="download-button" download="<%= upload.original_filename %>">下载</a>
                         </div>
                     </li>
                 <% }); %>
@@ -196,16 +196,16 @@
         </div>
 
         <div class="qr-list">
-            <% qrCodes.forEach(function(qr) { %>
-                <a href="/qr/<%= qr.qrId %>" class="qr-card">
-                    <div class="qr-id">ID: <%= qr.qrId.slice(0, 8) %>...</div>
+            <% qr_codes.forEach(function(qr) { %>
+                <a href="/qr/<%= qr.qr_id %>" class="qr-card">
+                    <div class="qr-id">ID: <%= qr.qr_id.slice(0, 8) %>...</div>
                     <div class="qr-url">
-                        <%= req.protocol %>://<%= req.get('host') %>/qr/<%= qr.qrId %>
+                        <%= req.protocol %>://<%= req.get('host') %>/qr/<%= qr.qr_id %>
                     </div>
-                    <div class="qr-status <%= qr.hasFile ? 'status-used' : 'status-unused' %>">
-                        <%= qr.hasFile ? '已使用' : '未使用' %>
+                    <div class="qr-status <%= qr.has_file ? 'status-used' : 'status-unused' %>">
+                        <%= qr.has_file ? '已使用' : '未使用' %>
                     </div>
-                    <div class="date"><%= new Date(qr.createdAt).toLocaleString() %></div>
+                    <div class="date"><%= new Date(qr.created_at).toLocaleString() %></div>
                 </a>
             <% }); %>
         </div>
